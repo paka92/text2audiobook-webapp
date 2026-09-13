@@ -10,9 +10,9 @@ app can do anything. All usage is billed to your account.
 
 - You need a Google Cloud account with **billing enabled**. Without a billing
   account attached, requests are rejected even if the key itself is valid.
-- The free tier is monthly: **4,000,000 characters for WaveNet**, **1,000,000 for
-  Neural2**. The app refuses to exceed those ceilings, but Google's own bill is
-  what counts.
+- The free tier is monthly: **4,000,000 characters for WaveNet**, **1,000,000
+  for Neural2**, **1,000,000 for Chirp 3: HD**. The app refuses to exceed those
+  ceilings, but Google's own bill is what counts.
 - The key never leaves your machine. It is not sent to the browser, not committed
   to git, and it is replaced with `[gizli anahtar]` in any error message.
 

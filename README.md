@@ -145,22 +145,28 @@ a chat window or the web interface.
 
 ## Voices, pricing and the usage ledger
 
+Three voice families are offered: **WaveNet**, **Neural2** and **Chirp 3: HD**.
 As of 12 September 2026 there is **no Turkish Neural2 voice** in the official
-list. The app opens with Turkish and **WaveNet** preselected, and warns you if
-you pick a combination that does not exist. Only WaveNet and Neural2 are offered.
-Voices are listed from the live API, so you only ever see what actually exists.
-The language field can be changed for books in other languages.
+list — the app opens with Turkish and **WaveNet** preselected and warns you if
+you pick a combination that does not exist. Chirp 3: HD **does** have Turkish
+voices (names like `tr-TR-Chirp3-HD-Charon`). Voices are listed from the live
+API, so you only ever see what actually exists. The language field can be
+changed for books in other languages.
 
 Neural2 is free for the first 1,000,000 characters per month, then $16 per
-million. WaveNet is free for the first 4,000,000, then $4 per million. This is
-not a permanent price guarantee and billing must be enabled. Check the current
-figures yourself: [pricing](https://cloud.google.com/text-to-speech/pricing),
+million. WaveNet is free for the first 4,000,000, then $4 per million.
+Chirp 3: HD is free for the first 1,000,000, then $30 per million — the most
+natural-sounding of the three and by far the most expensive past the free tier.
+This is not a permanent price guarantee and billing must be enabled. Check the
+current figures yourself:
+[pricing](https://cloud.google.com/text-to-speech/pricing),
 [voices](https://docs.cloud.google.com/text-to-speech/docs/list-voices-and-types),
 [quotas](https://docs.cloud.google.com/text-to-speech/quotas).
 
-The app enforces its own monthly ceiling — 4 million characters for WaveNet, 1
-million for Neural2 — with a separate monthly and all-time ("gross") counter per
-model. The monthly counter restarts on a new UTC calendar month; the gross
+The app enforces its own monthly ceiling — 4 million characters for WaveNet,
+1 million for Neural2, 1 million for Chirp 3: HD — with a separate monthly and
+all-time ("gross") counter per model. Counting is by **calendar month**: the
+monthly counter restarts when the UTC calendar month changes, and the gross
 counter never resets. Audio served from cache is not counted again.
 
 `.state/usage.json` is written **before** each request is sent, so failed or
@@ -201,6 +207,11 @@ reload, and does **not** silently retry the synthesis request.
 Speaking rate (0.25–2×), pitch (−20 to +20 semitones) and volume gain (−96 to
 +16 dB) are adjustable. Defaults are 1×, 0 and 0 dB; the reset button returns to
 those. Gains above +10 dB are not recommended.
+
+**Chirp 3: HD accepts speaking rate but not the pitch or volume parameters.**
+With that family selected, both must stay at 0 — the app refuses the request
+before anything is sent (and counted), and the page shows a notice when the
+family is picked.
 
 Text is sent to Google exactly as it appears in the file: no SSML wrapper, no
 escaping. The bytes sent are the bytes on disk, so your 4,999-byte chunking
@@ -329,8 +340,12 @@ API'yi etkinleştirin, yalnızca bu API ile kısıtlanmış bir API anahtarı ü
 `.venv/bin/python setup_google.py` ile kaydedin. Ayrıntılı anlatım ve hata
 çözümleri için **[API-KEY-SETUP.md](API-KEY-SETUP.md)** dosyasına bakın.
 
-**Maliyet koruması:** Aylık ücretsiz hak WaveNet için 4.000.000, Neural2 için
-1.000.000 karakterdir. Uygulama her modelin aylık ve gross sayacını ayrı tutar,
+**Maliyet koruması:** Aylık ücretsiz hak WaveNet için 4.000.000, Neural2 ve
+Chirp 3: HD için 1.000.000 karakterdir (Chirp 3: HD kota sonrası milyon başına
+$30 ile en pahalısıdır; perde ve ses seviyesi ayarlarını desteklemez, okuma
+hızını destekler). Sayaçlar takvim ayına göre işler: aylık sayaç UTC takvim ayı
+değişince sıfırdan başlar, gross sayaç hiç sıfırlanmaz. Uygulama her modelin
+aylık ve gross sayacını ayrı tutar,
 karakterleri göndermeden **önce** `.state/usage.json` dosyasına yazar ve
 başarısız istekleri de sayar. Tamamlanmış sesler önbellekten yeniden kullanılır,
 ikinci kez ücretlendirilmez. Bu sayaç Google faturasını okumaz; kesin tutar için

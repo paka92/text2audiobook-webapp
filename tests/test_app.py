@@ -32,6 +32,7 @@ class AudiobookTests(unittest.TestCase):
             p.start()
         a.BOOKS.mkdir()
         a.stop.clear()
+        a.voices_cache.clear()
         a.job.update(running=False, done=0, total=0, error='', message='',
                      preview_url='', package_url='', job_id='')
 
@@ -146,8 +147,42 @@ class AudiobookTests(unittest.TestCase):
             self.assertEqual(a.usage()['Neural2']['monthly'], 0)
         with patch.object(a, 'client') as google:
             with self.assertRaises(ValueError):
-                a.available_voices('tr-TR', 'Chirp3-HD')
+                a.available_voices('tr-TR', 'Studio')
             google.assert_not_called()
+
+    def test_chirp_hd_voices_counter_and_setting_limits(self):
+        book = self.book('chirp', 'Merhaba Chirp')
+        voice = 'tr-TR-Chirp3-HD-Charon'
+        listed = SimpleNamespace(voices=[
+            SimpleNamespace(name=voice, language_codes=['tr-TR']),
+            SimpleNamespace(name='tr-TR-Wavenet-A', language_codes=['tr-TR']),
+            SimpleNamespace(name='en-US-Chirp-HD-D', language_codes=['en-US'])])
+        with patch.object(a, 'client', return_value=SimpleNamespace(list_voices=lambda **kw: listed)):
+            self.assertEqual(a.available_voices('tr-TR', 'Chirp3-HD'), [voice])
+        client = a.app.test_client()
+        payload = {'book': 'chirp', 'voice': voice, 'language': 'tr-TR', 'family': 'Chirp3-HD'}
+        with patch.object(a, 'client') as google:
+            for options in [{'pitch': 2}, {'volume_gain_db': -5}]:
+                response = client.post('/api/start', json={**payload, 'settings': options},
+                                       headers={'X-Local-Token': a.TOKEN})
+                self.assertEqual(response.status_code, 400, options)
+                self.assertIn('Chirp 3: HD', response.json['error'])
+            google.assert_not_called()
+        self.assertEqual(a.usage()['Chirp3-HD']['gross'], 0)
+        with patch.object(a, 'available_voices', return_value=[voice]), patch.object(a.threading, 'Thread') as thread:
+            response = client.post('/api/start', json={**payload, 'settings': {'speaking_rate': 1.5}},
+                                   headers={'X-Local-Token': a.TOKEN})
+            self.assertEqual(response.status_code, 200, response.json)
+        service = SimpleNamespace(synthesize_speech=lambda **kw: SimpleNamespace(audio_content=audio_bytes()))
+        with patch.object(a, 'client', return_value=service):
+            a.convert(*thread.call_args.kwargs['args'])
+        spent = len('Merhaba Chirp')
+        self.assertEqual(a.usage()['Chirp3-HD'],
+                         {'monthly': spent, 'gross': spent, 'limit': 1_000_000})
+        self.assertEqual(a.usage()['Wavenet']['gross'], 0)
+        a.reserve('Chirp3-HD', 1_000_000 - spent, 0)
+        with self.assertRaises(ValueError):
+            a.reserve('Chirp3-HD', 1, 0)
 
     def test_api_key_local_setup_and_redaction(self):
         a.atomic(a.STATE / 'google-api-key.txt', b'test-local-key')

@@ -19,8 +19,9 @@
 <section>
 <h2>2. Ses seç</h2>
 <div class="row"><div><label for="language">Dil</label><input id="language" value="tr-TR" placeholder="tr-TR"></div>
-<div><label for="family">Model</label><select id="family"><option value="Wavenet" selected>WaveNet</option><option value="Neural2">Neural2</option></select></div></div>
+<div><label for="family">Model</label><select id="family"><option value="Wavenet" selected>WaveNet</option><option value="Neural2">Neural2</option><option value="Chirp3-HD">Chirp 3: HD</option></select></div></div>
 <p class="notice" id="model-note" hidden>Google'ın güncel listesinde Türkçe Neural2 bulunmuyor. Türkçe için farklı bir model seçmeniz gerekir.</p>
+<p class="notice" id="chirp-note" hidden>Chirp 3: HD perde ve ses seviyesi ayarlarını desteklemez; bu iki ayar 0 olmalıdır. Okuma hızı desteklenir.</p>
 <button class="secondary" id="load">Google seslerini getir</button>
 <label for="voice">Ses</label><select id="voice"><option value="">Önce sesleri getirin</option></select>
 <p id="voice-note" class="muted">Sesleri getirip bir ses seçin.</p>
@@ -37,10 +38,12 @@
 <caption class="muted">Kullanım sayaçları · karakter</caption>
 <thead><tr><th>Model</th><th>Aylık / sınır</th><th>Gross (tüm zamanlar)</th></tr></thead>
 <tbody><tr><th>WaveNet</th><td id="monthly-Wavenet">0 / 4.000.000</td><td id="gross-Wavenet">0</td></tr>
-<tr><th>Neural2</th><td id="monthly-Neural2">0 / 1.000.000</td><td id="gross-Neural2">0</td></tr></tbody>
+<tr><th>Neural2</th><td id="monthly-Neural2">0 / 1.000.000</td><td id="gross-Neural2">0</td></tr>
+<tr><th>Chirp 3: HD</th><td id="monthly-Chirp3-HD">0 / 1.000.000</td><td id="gross-Chirp3-HD">0</td></tr></tbody>
 </table>
 <div class="row"><div><label for="external-Wavenet">Bu ay diğer WaveNet kullanımı</label><input id="external-Wavenet" type="number" min="0" step="1" value="0"></div>
-<div><label for="external-Neural2">Bu ay diğer Neural2 kullanımı</label><input id="external-Neural2" type="number" min="0" step="1" value="0"></div></div>
+<div><label for="external-Neural2">Bu ay diğer Neural2 kullanımı</label><input id="external-Neural2" type="number" min="0" step="1" value="0"></div>
+<div><label for="external-Chirp3-HD">Bu ay diğer Chirp 3: HD kullanımı</label><input id="external-Chirp3-HD" type="number" min="0" step="1" value="0"></div></div>
 <label for="preview-file">Önce bir bölümü dinle</label><select id="preview-file"><option value="">Kitaptan bir metin dosyası seçin…</option></select>
 <button type="button" id="preview" class="secondary" disabled>Seçili bölümü oluştur</button>
 <div id="error-panel" role="alert" hidden style="background:#fff0ee;border:1px solid #c64b3a;border-radius:8px;padding:14px;margin:12px 0;overflow-wrap:anywhere"><strong>İşlem tamamlanamadı</strong><p id="error-text" style="margin:6px 0 0;white-space:pre-wrap"></p></div>
@@ -71,7 +74,7 @@ function invalidatePreview(){historySignature='';refreshHistory();statusEpoch++;
 
 function showError(message){$('error-text').textContent=message;$('error-panel').hidden=false;$('message').textContent=message;saveDraft()}
 function clearError(){$('error-text').textContent='';$('error-panel').hidden=true}
-const draftFields=['book','preview-file','language','family','voice','speaking_rate','pitch','volume_gain_db','playback-rate','external-Wavenet','external-Neural2','bitrate'];
+const draftFields=['book','preview-file','language','family','voice','speaking_rate','pitch','volume_gain_db','playback-rate','external-Wavenet','external-Neural2','external-Chirp3-HD','bitrate'];
 let draftReady=false;
 function saveDraft(){if(!draftReady)return;try{localStorage.setItem('audiobook-draft',JSON.stringify({values:Object.fromEntries(draftFields.map(id=>[id,$(id).value])),job:expectedJob,error:$('error-panel').hidden?'':$('error-text').textContent}))}catch(e){}}
 function restoreDraft(){
@@ -84,6 +87,7 @@ function restoreDraft(){
   if(values.voice&&values.voice.startsWith($('language').value+'-'+$('family').value+'-'))$('voice').replaceChildren(new Option(values.voice,values.voice));
   expectedJob=saved.job||null;acceptStatus=Boolean(expectedJob);displaySettings();
   $('model-note').hidden=!($('language').value==='tr-TR'&&$('family').value==='Neural2');
+  $('chirp-note').hidden=$('family').value!=='Chirp3-HD';
   if(saved.error)showError(saved.error);else $('message').textContent=expectedJob?'İşlem durumu kontrol ediliyor…':'Seçimleriniz geri yüklendi.';
  }
  draftReady=true;ready();refreshHistory();
@@ -109,9 +113,9 @@ async function api(url,data){
  let result;try{result=await response.json()}catch(e){throw Error(`Sunucu geçerli yanıt vermedi (HTTP ${response.status}). Seçimleriniz korunuyor.`)}
  if(!response.ok)throw Error(result.error||`İşlem başarısız (HTTP ${response.status}).`);return result;
 }
-function ready(){const b=books.find(b=>b.name===$('book').value);$('start').disabled=running||starting||!b||!$('voice').value||b.files.length===0||b.files.some(f=>f.error)||Boolean(b.oversize);$('preview').disabled=$('start').disabled||!$('preview-file').value;$('package').disabled=running||starting||!b;$('stop').hidden=!running;for(const id of ['book','preview-file','language','family','voice','load','external-Wavenet','external-Neural2','speaking_rate','pitch','volume_gain_db','reset-settings','bitrate'])$(id).disabled=running||starting}
+function ready(){const b=books.find(b=>b.name===$('book').value);$('start').disabled=running||starting||!b||!$('voice').value||b.files.length===0||b.files.some(f=>f.error)||Boolean(b.oversize);$('preview').disabled=$('start').disabled||!$('preview-file').value;$('package').disabled=running||starting||!b;$('stop').hidden=!running;for(const id of ['book','preview-file','language','family','voice','load','external-Wavenet','external-Neural2','external-Chirp3-HD','speaking_rate','pitch','volume_gain_db','reset-settings','bitrate'])$(id).disabled=running||starting}
 function selection(){const b=books.find(b=>b.name===$('book').value);$('preview-file').replaceChildren(new Option('Bir metin dosyası seçin…',''),...(b?b.files.map(f=>new Option(f.name,f.name)):[]));invalidatePreview();$('summary').textContent=b?`${b.files.length} dosya · ${fmt(b.characters)} karakter · ${b.oversize} dosya bayt sınırını aşıyor`:'Kitaplar books klasöründen okunur.';$('files').replaceChildren();const issues=b?b.files.filter(f=>f.error||f.bytes>4999):[];$('issues').hidden=!issues.length;for(const f of issues){const li=document.createElement('li');li.textContent=`${f.name} — ${fmt(f.bytes)} bayt${f.error?' · '+f.error:''}`;$('files').append(li)}ready()}
-function resetVoice(){invalidatePreview();$('voice').replaceChildren(new Option('Önce sesleri getirin',''));$('model-note').hidden=!($('language').value==='tr-TR'&&$('family').value==='Neural2');ready()}
+function resetVoice(){invalidatePreview();$('voice').replaceChildren(new Option('Önce sesleri getirin',''));$('model-note').hidden=!($('language').value==='tr-TR'&&$('family').value==='Neural2');$('chirp-note').hidden=$('family').value!=='Chirp3-HD';ready()}
 $('preview-file').onchange=()=>{invalidatePreview();ready()};$('book').onchange=selection;$('voice').onchange=()=>{invalidatePreview();ready()};$('family').onchange=resetVoice;$('language').oninput=resetVoice;
 $('load').onclick=async()=>{const language=$('language').value,family=$('family').value;$('load').disabled=true;$('voice-note').textContent='Sesler yükleniyor…';try{const data=await api('/api/voices?'+new URLSearchParams({language,family}));if(language!==$('language').value||family!==$('family').value)return;$('voice').replaceChildren(new Option('Ses seçin…',''),...data.voices.map(v=>new Option(v,v)));$('voice-note').textContent=data.voices.length?'Bir ses seçin.':'Bu dil ve model için ses bulunamadı.'}catch(e){$('voice-note').textContent=e.message}finally{ready()}};
 async function submit(url,payload,notice){

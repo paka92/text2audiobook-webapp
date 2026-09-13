@@ -9,7 +9,7 @@ async function main() {
     const page = await browser.newPage();
     const errors=[];
     page.on('pageerror', e=>errors.push(e.message));
-    let submitted, status={running:false,total:0,done:0,message:'Bir kitap seçin.',usage:{Wavenet:{monthly:0,gross:0,limit:4000000},Neural2:{monthly:0,gross:0,limit:1000000}}};
+    let submitted, status={running:false,total:0,done:0,message:'Bir kitap seçin.',usage:{Wavenet:{monthly:0,gross:0,limit:4000000},Neural2:{monthly:0,gross:0,limit:1000000},'Chirp3-HD':{monthly:0,gross:0,limit:1000000}}};
     let requests=0;
     await page.route('**/*', async route=>{
       const url=new URL(route.request().url());

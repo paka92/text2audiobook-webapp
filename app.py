@@ -24,7 +24,7 @@ CACHE = ROOT / '.audio-cache'
 PACKAGES = ROOT / 'packages'
 MAX_BYTES = 4999
 BITRATES = (32000, 48000, 64000)
-MONTH_LIMITS = {'Wavenet': 4_000_000, 'Neural2': 1_000_000}
+MONTH_LIMITS = {'Wavenet': 4_000_000, 'Neural2': 1_000_000, 'Chirp3-HD': 1_000_000}
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16_384
 TOKEN = secrets.token_urlsafe(32)
@@ -545,6 +545,10 @@ def start():
             if external < 0:
                 raise ValueError('Diğer kullanım negatif olamaz.')
             settings = audio_settings(data.get('settings'))
+            # Chirp 3: HD accepts speaking_rate but rejects the pitch and volume
+            # request parameters, so stop here instead of paying for a failed call.
+            if family == 'Chirp3-HD' and (settings['pitch'] or settings['volume_gain_db']):
+                raise ValueError('Chirp 3: HD sesleri perde ve ses seviyesi ayarını desteklemez; bu iki ayarı 0 bırakın.')
             items = plan(book, voice, settings, language)
             # Always validate the entire book, including for a single-file preview.
             preview_file = data.get('file')
