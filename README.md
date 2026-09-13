@@ -1,33 +1,89 @@
 # Text to Audiobook · Metinden Sesli Kitap
 
-**English —** A local, self-hosted **text to speech audiobook generator**. It
-converts folders of plain `.txt` chapters into a full **audiobook** with **Google
-Cloud Text-to-Speech** (WaveNet / Neural2), then packages the result as a single
-compressed **zip of AAC/m4a audio paired with its source text** for your phone.
-Built to stay inside the **free monthly character quota**: it validates the whole
-book before sending anything, counts every character before spending it, and
-caches finished audio so you never pay for the same text twice. Python, Flask,
-runs entirely on `127.0.0.1`. Works with any language Google supports; the
-interface is Turkish.
+**English —** An **epub / mobi to audiobook** pipeline. Books start as ebook
+files; you use an **AI chatbot** to convert and split them into numbered plain
+`.txt` chapters, then this tool synthesises those chapters into speech through
+**Google Cloud Text-to-Speech** (WaveNet / Neural2) and packages the result as a
+single **zip of AAC/m4a audio paired with its source text** for your phone. Built
+to stay inside the **free monthly character quota**: it validates the whole book
+before sending anything, counts every character before spending it, and caches
+finished audio so you never pay for the same text twice. The web interface is a
+local Python/Flask app on `127.0.0.1`, but **synthesis is a cloud service** — it
+needs an internet connection and a Google Cloud account with billing enabled.
+Works with any language Google supports; the interface is Turkish.
 
-**Türkçe —** Yerel çalışan, kendi sunucunuzda barınan bir **metinden sesli kitap
-dönüştürücü**. `books/` klasöründeki `.txt` bölümleri **Google Cloud
-Text-to-Speech** (WaveNet / Neural2) ile seslendirip **sesli kitaba** çevirir ve
-telefona taşımak için her bölümün **AAC/m4a sesini metniyle birlikte** tek bir
-zip'te paketler. **Ücretsiz aylık karakter kotası** içinde kalmak üzere
-tasarlandı: hiçbir şey göndermeden önce kitabın tamamını doğrular, karakterleri
-harcamadan önce sayar ve tamamlanmış sesleri önbelleğe alarak aynı metin için
-ikinci kez ödeme yapmanızı engeller. **Türkçe seslendirme** için hazır gelir
-(`tr-TR`, WaveNet). Python, Flask, tamamen `127.0.0.1` üzerinde çalışır.
+**Türkçe —** **Epub / mobi'den sesli kitaba** dönüştürme hattı. Kitaplar e-kitap
+dosyası olarak başlar; önce bir **yapay zekâ sohbet botuyla** numaralandırılmış
+düz `.txt` bölümlere ayrılır, sonra bu araç o bölümleri **Google Cloud
+Text-to-Speech** (WaveNet / Neural2) ile seslendirir ve telefona taşımak için her
+bölümün **AAC/m4a sesini metniyle birlikte** tek bir zip'te paketler. **Ücretsiz
+aylık karakter kotası** içinde kalmak üzere tasarlandı: hiçbir şey göndermeden
+önce kitabın tamamını doğrular, karakterleri harcamadan önce sayar ve tamamlanmış
+sesleri önbelleğe alarak aynı metin için ikinci kez ödeme yapmanızı engeller.
+**Türkçe seslendirme** için hazır gelir (`tr-TR`, WaveNet). Arayüz `127.0.0.1`
+üzerinde çalışan yerel bir Python/Flask uygulamasıdır; ancak **seslendirme bir
+bulut hizmetidir** — internet bağlantısı ve faturalandırması açık bir Google
+Cloud hesabı gerekir.
 
-*Keywords / Anahtar kelimeler: text to speech, TTS, audiobook generator, sesli
-kitap, metin okuma, Türkçe seslendirme, Turkish text to speech, Google Cloud TTS,
-WaveNet, Neural2, epub to audiobook, book to mp3, self-hosted, offline, Flask.*
+*Keywords / Anahtar kelimeler: epub to audiobook, mobi to audiobook, text to
+speech, TTS, audiobook generator, sesli kitap, e-kitabı sesli kitaba çevirme,
+metin okuma, Türkçe seslendirme, Turkish text to speech, Google Cloud TTS,
+WaveNet, Neural2, ebook to mp3, Flask, Python.*
 
 > The interface and its messages are in Turkish. This document and
 > [API-KEY-SETUP.md](API-KEY-SETUP.md) are in English, each with a Turkish
 > summary at the end. · Arayüz Türkçedir; belgeler İngilizcedir ve sonunda
 > Türkçe özet vardır.
+
+## How the pipeline works
+
+```
+  epub / mobi ebook
+        │
+        │   step 1 — an AI chatbot, using a formatting prompt
+        ▼
+  books/Book_Name/001_chapter.txt …        UTF-8 chapters, each ≤ 4,999 bytes
+        │
+        │   step 2 — this app → Google Cloud Text-to-Speech    (cloud, billed)
+        ▼
+  books/audiobook/Book_Name/*.wav          lossless 24 kHz
+        │
+        │   step 3 — this app → afconvert / ffmpeg             (local, free)
+        ▼
+  packages/Book_Name.zip                   AAC audio + text + manifest
+```
+
+**Only step 2 leaves your machine or costs anything.** Step 1 happens in whatever
+chatbot you prefer, before the app is involved. Step 3 is pure local
+transcoding — no network, no quota, repeatable as often as you like.
+
+### Step 1 — preparing a book from epub or mobi
+
+This app does not read ebook formats. It expects a folder of plain text chapters,
+which you produce beforehand by having an AI chatbot convert the ebook and split
+it into numbered files:
+
+```
+books/Book_Name/
+├── 001_00_preface_part_01.txt
+├── 002_01_intro_part_01.txt
+├── 002_01_intro_part_02.txt
+└── …
+```
+
+Two rules matter when splitting:
+
+- **The limit is 4,999 UTF-8 bytes per file, not characters.** Turkish letters
+  (`ş ğ ı İ ç ö ü`), accented Latin, and any non-ASCII text cost two or more
+  bytes each, so a 4,900-character chapter can easily be 5,400 bytes and get
+  rejected. Target roughly 4,000–4,500 characters to leave headroom.
+- **Sort order is playback order.** Zero-padded numeric prefixes
+  (`001_`, `002_`, …) keep chapters in sequence, since the playlist and the
+  package manifest are both ordered by filename.
+
+Split on paragraph boundaries rather than mid-sentence — each file becomes one
+uninterrupted synthesis request, and a chapter cut mid-sentence will sound like
+it.
 
 ## Running it
 
@@ -167,8 +223,9 @@ A preview never modifies the full book's playlist.
 
 ## Files and layout
 
-- Add each book as `books/Book_Name/*.txt`. Subfolders are preserved. A single
-  `books/Book.txt` also works. UTF-8 is required.
+- Add each book as `books/Book_Name/*.txt`, produced by the ebook conversion in
+  [step 1](#step-1--preparing-a-book-from-epub-or-mobi). Subfolders are
+  preserved. A single `books/Book.txt` also works. UTF-8 is required.
 - The entire selected book is validated before anything starts, and each request
   is separately checked against the **4,999 UTF-8 byte** limit.
 - Oversized files block the whole book by design. There is no automatic
@@ -239,11 +296,29 @@ single-folder structure of the zip package.
 
 ## Türkçe özet
 
-Bu uygulama `books/Kitap_Adi/*.txt` altındaki metin bölümlerini Google Cloud
-Text-to-Speech ile seslendirip sesli kitaba dönüştürür, sonra hepsini telefona
-taşınabilecek tek bir zip'te paketler. Tamamen kendi bilgisayarınızda çalışır ve
-kendi Google Cloud hesabınıza fatura edilir. Arayüz Türkçedir; bu belge ve
-[API-KEY-SETUP.md](API-KEY-SETUP.md) İngilizcedir.
+Bu proje epub/mobi bir e-kitabı sesli kitaba çevirmek için üç adımlı bir hattır:
+
+```
+epub / mobi
+    │  1. adım — yapay zekâ sohbet botu, biçimlendirme istemiyle
+    ▼
+books/Kitap_Adi/001_bolum.txt …       her dosya en fazla 4.999 bayt
+    │  2. adım — bu uygulama → Google Cloud TTS      (bulut, ücretli)
+    ▼
+books/audiobook/Kitap_Adi/*.wav       kayıpsız 24 kHz
+    │  3. adım — bu uygulama → afconvert / ffmpeg    (yerel, ücretsiz)
+    ▼
+packages/Kitap_Adi.zip                AAC ses + metin + manifest
+```
+
+**Yalnızca 2. adım bilgisayarınızdan çıkar ve ücretlendirilir.** 1. adım
+uygulamaya girmeden önce, istediğiniz sohbet botunda yapılır. 3. adım tamamen
+yerel dönüştürmedir: ağ yok, kota yok, istediğiniz kadar tekrarlanabilir.
+
+Uygulama e-kitap biçimlerini okumaz; hazır `.txt` bölümleri bekler. Arayüz
+`127.0.0.1` üzerinde çalışan yerel bir uygulamadır, ancak **seslendirme bulut
+hizmetidir**: internet ve faturalandırması açık bir Google Cloud hesabı gerekir.
+Arayüz Türkçedir; bu belge ve [API-KEY-SETUP.md](API-KEY-SETUP.md) İngilizcedir.
 
 **Çalıştırma:** `uv venv .venv` → `uv pip install --python .venv/bin/python -r
 requirements.txt` → `.venv/bin/python app.py`. Tarayıcı
