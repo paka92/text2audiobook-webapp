@@ -61,7 +61,11 @@ transcoding — no network, no quota, repeatable as often as you like.
 
 This app does not read ebook formats. It expects a folder of plain text chapters,
 which you produce beforehand by having an AI chatbot convert the ebook and split
-it into numbered files:
+it into numbered files. The ready-made prompt for that job is
+**[ai-book-format-prompt.md](ai-book-format-prompt.md)** — paste it into a
+chatbot together with the PDF/EPUB/MOBI upload, then unzip the result into
+`books/`. The `manifest.csv` and `chapter_summary.csv` it produces alongside the
+chapters are ignored by this app (only `.txt` files are read), so they can stay:
 
 ```
 books/Book_Name/
