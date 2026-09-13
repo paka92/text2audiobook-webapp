@@ -1,6 +1,35 @@
-# Kitapları sesli kitaba dönüştür
+# Text to Audiobook · Metinden Sesli Kitap
 
-## Çalıştırma
+**English —** A local, self-hosted **text to speech audiobook generator**. It
+converts folders of plain `.txt` chapters into a full **audiobook** with **Google
+Cloud Text-to-Speech** (WaveNet / Neural2), then packages the result as a single
+compressed **zip of AAC/m4a audio paired with its source text** for your phone.
+Built to stay inside the **free monthly character quota**: it validates the whole
+book before sending anything, counts every character before spending it, and
+caches finished audio so you never pay for the same text twice. Python, Flask,
+runs entirely on `127.0.0.1`. Works with any language Google supports; the
+interface is Turkish.
+
+**Türkçe —** Yerel çalışan, kendi sunucunuzda barınan bir **metinden sesli kitap
+dönüştürücü**. `books/` klasöründeki `.txt` bölümleri **Google Cloud
+Text-to-Speech** (WaveNet / Neural2) ile seslendirip **sesli kitaba** çevirir ve
+telefona taşımak için her bölümün **AAC/m4a sesini metniyle birlikte** tek bir
+zip'te paketler. **Ücretsiz aylık karakter kotası** içinde kalmak üzere
+tasarlandı: hiçbir şey göndermeden önce kitabın tamamını doğrular, karakterleri
+harcamadan önce sayar ve tamamlanmış sesleri önbelleğe alarak aynı metin için
+ikinci kez ödeme yapmanızı engeller. **Türkçe seslendirme** için hazır gelir
+(`tr-TR`, WaveNet). Python, Flask, tamamen `127.0.0.1` üzerinde çalışır.
+
+*Keywords / Anahtar kelimeler: text to speech, TTS, audiobook generator, sesli
+kitap, metin okuma, Türkçe seslendirme, Turkish text to speech, Google Cloud TTS,
+WaveNet, Neural2, epub to audiobook, book to mp3, self-hosted, offline, Flask.*
+
+> The interface and its messages are in Turkish. This document and
+> [API-KEY-SETUP.md](API-KEY-SETUP.md) are in English, each with a Turkish
+> summary at the end. · Arayüz Türkçedir; belgeler İngilizcedir ve sonunda
+> Türkçe özet vardır.
+
+## Running it
 
 ```sh
 uv venv .venv
@@ -8,190 +37,246 @@ uv pip install --python .venv/bin/python -r requirements.txt
 .venv/bin/python app.py
 ```
 
-Tarayıcı otomatik olarak http://127.0.0.1:5001 adresini açar. Uygulama yalnızca
-bu bilgisayardan erişilebilir. Sayfada bir kitap, model ve ses seçip **Seçili
-kitabı seslendir** düğmesine basın. Listeleme sırasında metin gönderilmez.
+Your browser opens http://127.0.0.1:5001 automatically. The server listens only
+on localhost and refuses requests arriving under any other host name. Pick a
+book, a model and a voice, then press **Seçili kitabı seslendir** ("synthesise
+the selected book"). Listing voices never sends any book text.
 
-## Google Cloud kurulumu
+## Google Cloud setup
 
-> Kendi anahtarınızı oluşturma, kısıtlama, değiştirme ve hata çözümleri için
-> ayrıntılı rehber: **[API-KEY-KURULUMU.md](API-KEY-KURULUMU.md)**. Aşağısı
-> aynı adımların kısa özetidir.
+> For the full walkthrough — creating a key, restricting it, rotating it,
+> revoking it, and a table mapping every in-app error to its fix — see
+> **[API-KEY-SETUP.md](API-KEY-SETUP.md)**. What follows is the short version.
 
-### API anahtarıyla (CLI gerektirmez)
+### With an API key (no CLI required)
 
-1. [Google Cloud Console](https://console.cloud.google.com/) içinde proje seçin
-   veya oluşturun ve faturalandırma hesabı bağlayın.
-2. Aynı projede [Cloud Text-to-Speech API](https://console.cloud.google.com/apis/library/texttospeech.googleapis.com)
-   hizmetini etkinleştirin.
-3. [Kimlik bilgileri](https://console.cloud.google.com/apis/credentials) sayfasında
-   **Create credentials → API key** seçin. **API restrictions → Restrict key**
-   altında yalnızca **Cloud Text-to-Speech API** seçerek kaydedin.
-4. Proje klasöründe `.venv/bin/python setup_google.py` çalıştırın ve anahtarı
-   terminaldeki gizli giriş alanına yapıştırın. Anahtar ekranda görünmez.
-5. Uygulamayı `.venv/bin/python app.py` ile açın; zaten çalışıyorsa sayfayı
-   yenileyin. **Google seslerini getir** düğmesi bağlantıyı metin göndermeden sınar.
+1. In the [Google Cloud Console](https://console.cloud.google.com/), create or
+   select a project and attach a **billing account**.
+2. Enable [Cloud Text-to-Speech API](https://console.cloud.google.com/apis/library/texttospeech.googleapis.com)
+   on that same project.
+3. On the [Credentials](https://console.cloud.google.com/apis/credentials) page
+   choose **Create credentials → API key**, then edit it and under
+   **API restrictions → Restrict key** select only **Cloud Text-to-Speech API**.
+4. Run `.venv/bin/python setup_google.py` in the project folder and paste the key
+   into the hidden prompt. It is never echoed to the screen or the shell history.
+5. Start the app. Press **Google seslerini getir** ("fetch Google voices") to test
+   the connection — this sends no book text.
 
-Anahtar `.state/google-api-key.txt` dosyasında yalnızca kullanıcıya okuma/yazma
-izniyle tutulur; Git'e dahil edilmez ve tarayıcıya gönderilmez. Anahtarı değiştirmek
-için kurulum komutunu tekrar çalıştırın. İsterseniz dosya yerine
-`GOOGLE_CLOUD_TTS_API_KEY` ortam değişkenini kullanabilirsiniz; bu değişken önceliklidir.
-API anahtarı yoksa aşağıdaki hesapla giriş yöntemi kullanılır.
+The key is stored in `.state/google-api-key.txt` with owner-only permissions
+(`0600`). It is git-ignored, never sent to the browser, and redacted from error
+messages. To change it, run the setup command again. You may set the
+`GOOGLE_CLOUD_TTS_API_KEY` environment variable instead; it takes priority over
+the file. Without an API key the app falls back to account credentials below.
 
-### Google hesabıyla (alternatif)
+### With a Google account (alternative)
 
-1. [Google Cloud Console](https://console.cloud.google.com/) içinde bir proje
-   oluşturun/seçin ve faturalandırma hesabı bağlayın.
-2. O projede [Cloud Text-to-Speech API](https://console.cloud.google.com/apis/library/texttospeech.googleapis.com)
-   hizmetini etkinleştirin.
-3. [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) yükleyin.
-4. Terminalde kendi proje kimliğinizle çalıştırın:
+1. Create or select a project and attach a billing account.
+2. Enable Cloud Text-to-Speech API on it.
+3. Install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install).
+4. Run, with your own project id:
 
 ```sh
 gcloud auth login
-gcloud config set project PROJE_KIMLIGI
+gcloud config set project PROJECT_ID
 gcloud auth application-default login
-gcloud auth application-default set-quota-project PROJE_KIMLIGI
+gcloud auth application-default set-quota-project PROJECT_ID
 ```
 
-Hesabınızın bu projede API kullanma (`serviceusage.services.use`) yetkisi olmalıdır.
-Kimlik bilgileri sohbet veya web arayüzüne yapıştırılmaz. Alternatif olarak kendi
-servis hesabınızın JSON dosyasını proje dışında tutup `GOOGLE_APPLICATION_CREDENTIALS`
-ortam değişkenini o dosyanın tam yoluna ayarlayabilirsiniz.
+Your account needs `serviceusage.services.use` on that project. Alternatively,
+keep a service-account JSON file outside the project folder and point
+`GOOGLE_APPLICATION_CREDENTIALS` at its full path. Never paste credentials into
+a chat window or the web interface.
 
-## Ses ve ücretsiz kullanım
+## Voices, pricing and the usage ledger
 
-12 Eylül 2026 tarihinde resmi listede **Türkçe Neural2 sesi yok**. Uygulama Türkçe
-ve **WaveNet** seçili olarak açılır. Listede yalnızca WaveNet ve Neural2 bulunur.
-Sesler API üzerinden gerçek kullanılabilirliklerine
-göre listelenir. Dil alanı farklı kitaplar için değiştirilebilir.
+As of 12 September 2026 there is **no Turkish Neural2 voice** in the official
+list. The app opens with Turkish and **WaveNet** preselected, and warns you if
+you pick a combination that does not exist. Only WaveNet and Neural2 are offered.
+Voices are listed from the live API, so you only ever see what actually exists.
+The language field can be changed for books in other languages.
 
-Neural2 aylık ilk 1.000.000 karakter için $0, sonrası milyon karakter başına $16.
-WaveNet ilk 4.000.000 karakter ücretsiz, sonrası milyon başına $4.
-Bu kalıcı bir fiyat garantisi değildir. Faturalandırmanın etkin olması gerekir.
-Diğer modellerin güncel fiyatlarını ayrıca kontrol edin:
-[fiyatlandırma](https://cloud.google.com/text-to-speech/pricing),
-[sesler](https://docs.cloud.google.com/text-to-speech/docs/list-voices-and-types),
-[istek sınırları](https://docs.cloud.google.com/text-to-speech/quotas).
+Neural2 is free for the first 1,000,000 characters per month, then $16 per
+million. WaveNet is free for the first 4,000,000, then $4 per million. This is
+not a permanent price guarantee and billing must be enabled. Check the current
+figures yourself: [pricing](https://cloud.google.com/text-to-speech/pricing),
+[voices](https://docs.cloud.google.com/text-to-speech/docs/list-voices-and-types),
+[quotas](https://docs.cloud.google.com/text-to-speech/quotas).
 
-Uygulama WaveNet için ayda 4 milyon, Neural2 için ayda 1 milyon karakter sınırı
-uygular. Her modelin ayrı aylık ve gross (tüm zamanlar) sayacı vardır. Aylık
-sayaç yeni ayda sıfırdan başlar; gross geçmiş aylarla birlikte toplamı korur.
-Önbellekten kullanılan sesler yeniden sayılmaz. `.state/usage.json` UTC takvim ayına göre gönderimden **önce**
-güncellenir. Hatalı/belirsiz istekler de sayılır; otomatik API tekrarı yapılmaz.
-Bu sayaç Google faturasını okumaz; başka cihaz/proje/uygulamadaki kullanımları
-modeline ait alana ayrıca girin; bu değerler sayaçlara eklenmez, aylık sınır
-hesabında dikkate alınır. WaveNet ile aynı ücretsiz SKU kapsamındaki Standard
-kullanımını da diğer WaveNet kullanımına dahil edin. Google'ın faturalandırma dönemi ve SKU kapsamı esas
-alınır; uygulama $0 fatura garantisi vermez. Sayaç dosyasını silmeyin.
+The app enforces its own monthly ceiling — 4 million characters for WaveNet, 1
+million for Neural2 — with a separate monthly and all-time ("gross") counter per
+model. The monthly counter restarts on a new UTC calendar month; the gross
+counter never resets. Audio served from cache is not counted again.
 
-## Ön dinleme
+`.state/usage.json` is written **before** each request is sent, so failed or
+ambiguous requests still count. There are no automatic retries. This ledger does
+not read your Google bill: usage from other devices, projects or applications
+must be entered by hand in the corresponding model's field, where it counts
+toward the monthly limit without being added to the stored counters. Standard
+voices share the free SKU with WaveNet, so include that usage there too. Google's
+own billing period and SKU definitions are what actually govern your bill; this
+app does not guarantee a $0 invoice. **Do not delete the ledger file.**
 
-Ön dinlemeler, üretildikleri ses ve ayarlarla birlikte **Ön dinlemeler · karşılaştır**
-listesinde saklanır. Her kaydın bağımsız oynatıcısı vardır. Yeni bir üretim eskisini
-değiştirmez. **×** düğmesi yalnızca o ön dinleme kopyasını siler; kitap çıktısı,
-yeniden kullanım önbelleği ve tüketilmiş karakter sayacı korunur.
-Ayarları değiştirince üstteki oynatıcı temizlenir; eski kayıtları alttaki listeden
-dinleyebilirsiniz. Başarısız bir gönderimde hata görünür kalır; önceki sonuç
-yeni üretilmiş gibi gösterilmez.
+## Previewing before you commit
 
-Hatalar **Seçili bölümü oluştur** düğmesinin hemen altında kırmızı kutuda gösterilir.
-Bayt sınırı hatasında dosyanın adı, gönderilecek bayt sayısı ve düzeltme yolu yazılır.
-Seslendirme sırasında bir istek başarısız olursa kutuda hangi dosyada durulduğu,
-bilinen hata türleri için Türkçe açıklama ve her durumda Google'ın döndürdüğü özgün
-yanıt (`Ayrıntı:` satırı) gösterilir. Anahtar bu metinden çıkarılır.
-Arayüz açıklama metinleri yerine bu belgeyi kullanır.
-Kitap, bölüm, ses, üretim ayarları ve son hata tarayıcıda yerel olarak saklanır;
-sayfa yenilendiğinde geri yüklenir. API anahtarı bu kayda dahil edilmez.
-Sunucu yeniden başlatılınca sayfa yenilemeden güncel yerel oturum alınır;
-bu işlem seslendirme isteğini otomatik tekrarlamaz.
+Previews are kept, with the voice and settings that produced them, in the
+**Ön dinlemeler · karşılaştır** ("previews · compare") list. Each has its own
+player, and a new preview never replaces an old one, so you can compare voices
+side by side. The **×** button deletes only that preview copy — the book output,
+the reuse cache and the spent-character counters are all preserved.
 
-### Ses kontrolleri
+Changing any setting clears the player at the top; older recordings remain
+playable from the list below. When a request fails, the error stays visible and
+a previous result is never presented as if it were newly generated.
 
-Arayüzde okuma hızı (0,25–2×), ses perdesi (-20–20 yarım ton) ve ses seviyesi
-(-96–16 dB) ayarlanabilir. Varsayılanlar 1× hız, 0 perde ve 0 dB'dir. Sıfırla
-düğmesi bu değerlere döner. +10 dB üzerinde ses artışı önerilmez.
+Errors appear in a red box directly beneath the **Seçili bölümü oluştur**
+("generate selected chapter") button. For a byte-limit failure it names the file,
+its byte count and how to fix it. For a synthesis failure it reports which file
+it stopped on, a plain-language explanation for recognised error types, and in
+every case Google's original response on an `Ayrıntı:` ("detail") line. The API
+key is redacted from that text.
 
-Metin Google'a olduğu gibi gönderilir: SSML etiketi eklenmez, kaçış yapılmaz.
-Gönderilen bayt sayısı dosyanın kendi boyutudur, bu yüzden 4.999 baytlık
-bölümleme dosyada ne yazıyorsa ona göre çalışır. Otomatik bölme yapılmaz.
-Paragraflar arası ek duraklama ayarı bu nedenle kaldırılmıştır.
+Your book, chapter, voice, generation settings and last error are stored locally
+in the browser and restored on reload. The API key is never part of that record.
+If the server restarts, the page picks up a fresh session without needing a
+reload, and does **not** silently retry the synthesis request.
 
-Üretim ayarları önbellek anahtarına dahildir. Aynı metin, ses ve ayarlar için
-tamamlanmış sesler yeniden kullanılır; ayarları değiştirerek üretmek yeni
-karakter kullanımıdır. Önceki varsayılan ayarlarla üretilmiş sesler korunur.
-Oynatıcının ayrı **Dinleme hızı** seçimi Google'a istek göndermez, sayaçları
-artırmaz ve kayıtlı dosyayı değiştirmez.
+### Audio controls
 
-Seçili kitaptan bir metin dosyası seçip **Seçili bölümü oluştur** düğmesine basın.
-Yalnızca o dosya seslendirilir; sonuç sayfadaki oynatıcıdan dinlenir. Ön dinleme
-öncesinde de kitabın tamamı kontrol edilir: tek dosya bile 4.999 baytı aşarsa
-hiçbir istek gönderilmez. Ön dinleme karakterleri modelin aylık ve gross sayacına
-bir kez eklenir. Kitabın tamamını aynı ses ve ayarlarla başlatınca hazır bölüm yeniden
-kullanılır. Ön dinleme, tam kitabın çalma listesini değiştirmez.
+Speaking rate (0.25–2×), pitch (−20 to +20 semitones) and volume gain (−96 to
++16 dB) are adjustable. Defaults are 1×, 0 and 0 dB; the reset button returns to
+those. Gains above +10 dB are not recommended.
 
-## Dosyalar
+Text is sent to Google exactly as it appears in the file: no SSML wrapper, no
+escaping. The bytes sent are the bytes on disk, so your 4,999-byte chunking
+behaves exactly as the file suggests. There is no automatic splitting. (An
+inter-paragraph pause control used to exist; it was removed precisely because
+its SSML tags inflated the payload past that limit.)
 
-- Her kitabı `books/Kitap_Adi/*.txt` düzeninde ekleyin. Alt klasörler korunur.
-  Doğrudan `books/Kitap.txt` de desteklenir. UTF-8 gerekir.
-- Başlamadan bütün seçili kitap kontrol edilir. Her API isteği ayrıca en fazla
-  **4.999 UTF-8 bayt** olacak şekilde kontrol edilir.
-- Sınırı aşan dosyalar varsayılan olarak kitabın gönderilmesini engeller.
-  Otomatik bölme yapılmaz. Tek dosya bile sınırı aşarsa hiçbir dosya gönderilmez.
-  Hatalı metinleri düzeltip sayfayı yenileyin.
-- Her `dosya.txt` için `dosya.wav` üretilir. WAV 24 kHz, kayıpsız ve MP3'ten
-  büyüktür. Diskte ses önbelleği ve kopyalar için yeterli boş alan bırakın.
-- Tamamlanan parçalar `.audio-cache/` altında tutulur. Aynı metin ve aynı sesle
-  devam edildiğinde geçerli parçalar yeniden gönderilmez.
-- Bütün kitap tamamlanınca sesler `books/audiobook/Kitap_Adi/` içine kopyalanır;
-  dosya adına göre sıralı `playlist.m3u` eklenir. Aynı kitabı başka sesle çalıştırmak
-  bu çıktıdaki aynı adlı dosyaları değiştirir.
-- Durdur düğmesi mevcut Google isteği bittikten sonra durur. Uygulamayı yeniden
-  açınca aynı kitap/sesi seçerek devam edin. Çıkış için terminalde Ctrl+C kullanın.
-- Aynı çalışma klasöründe aynı anda yalnızca **bir sunucu** çalıştırın.
+Generation settings are part of the cache key. Identical text, voice and settings
+reuse finished audio; changing a setting and regenerating costs new characters.
+Audio produced under earlier default settings stays reusable. The player's
+separate **Dinleme hızı** ("playback rate") control is purely local — it sends
+nothing to Google, spends no characters, and does not alter the saved file.
 
-## Telefon paketi
+To preview, select a text file from the chosen book and press **Seçili bölümü
+oluştur**. Only that file is synthesised. The whole book is still validated
+first: if even one file exceeds 4,999 bytes, no request is sent at all. Preview
+characters are added once to the model's monthly and gross counters. Running the
+full book afterwards with the same voice and settings reuses that chapter.
+A preview never modifies the full book's playlist.
 
-Kitabın sesi tamamlandıktan sonra **4. Telefon paketi** bölümünden tek bir zip
-üretilir: `packages/Kitap_Adi.zip`. Zip'in içinde tek bir klasör vardır ve her
-bölümün sesi ile metni yan yana durur:
+## Files and layout
+
+- Add each book as `books/Book_Name/*.txt`. Subfolders are preserved. A single
+  `books/Book.txt` also works. UTF-8 is required.
+- The entire selected book is validated before anything starts, and each request
+  is separately checked against the **4,999 UTF-8 byte** limit.
+- Oversized files block the whole book by design. There is no automatic
+  splitting: if even one file exceeds the limit, nothing is sent. Fix the text
+  and reload the page.
+- Each `file.txt` produces a `file.wav` at 24 kHz. WAV is lossless and much
+  larger than compressed formats — leave room on disk for the cache and copies.
+- Finished parts live in `.audio-cache/`, keyed by a hash of voice, text and
+  settings. Resuming with the same text and voice never re-sends valid parts.
+- When a book completes, the audio is copied to `books/audiobook/Book_Name/`
+  with a `playlist.m3u` ordered by filename. Running the same book with a
+  different voice overwrites the same filenames in that output.
+- The stop button takes effect after the current Google request finishes.
+  Reopen the app and select the same book and voice to continue. Use Ctrl+C in
+  the terminal to quit.
+- Run only **one server** per working directory at a time; a lock file enforces
+  this.
+
+## Phone package
+
+Once a book's audio is complete, section **4. Telefon paketi** ("phone package")
+produces a single zip at `packages/Book_Name.zip`. Inside is one flat folder
+holding each chapter's audio and text side by side:
 
 ```
-Kitap_Adi.zip
-└── Kitap_Adi/
-    ├── 001_onsoz.m4a
-    ├── 001_onsoz.txt
-    ├── 002_giris.m4a
-    ├── 002_giris.txt
+Book_Name.zip
+└── Book_Name/
+    ├── 001_preface.m4a
+    ├── 001_preface.txt
+    ├── 002_intro.m4a
+    ├── 002_intro.txt
     ├── manifest.json
     └── playlist.m3u
 ```
 
-Alt klasörlü kitaplarda yol adı dosya adına katlanır (`bolum1/002.txt` →
-`bolum1_002.m4a`), böylece her şey tek klasörde kalır ve ad çakışması olmaz.
+For books with subfolders the path folds into the filename
+(`part1/002.txt` → `part1_002.m4a`), so everything stays in one directory and
+names cannot collide.
 
-WAV dosyaları AAC'ye (`.m4a`, 24 kHz, mono) dönüştürülür. 48 kbps'de paket
-kaynak WAV'ların yaklaşık **8 katı küçüktür**; 14 saatlik bir kitap ~2,4 GB
-yerine ~300 MB olur. Kalite 32 / 48 / 64 kbps arasından seçilir. Dönüştürme
-macOS'un `afconvert` aracıyla yapılır; yoksa `ffmpeg` kullanılır. Google'a istek
-gönderilmez, karakter sayaçları artmaz — paketleme ücretsizdir ve istediğiniz
-kadar tekrarlanabilir.
+WAV files are converted to AAC (`.m4a`, 24 kHz, mono). At 48 kbps the package is
+roughly **8× smaller** than the source WAVs — a measured 11-hour book went from
+1.77 GB to 234 MB. Quality is selectable at 32 / 48 / 64 kbps. Conversion uses
+macOS's built-in `afconvert`, falling back to `ffmpeg` elsewhere. Nothing is sent
+to Google and no characters are spent, so packaging is free and repeatable.
 
-`manifest.json` telefon uygulaması içindir: sıralı bölüm listesi, her bölümün ses
-ve metin dosya adı, saniye cinsinden süresi ve bayt boyutu, ayrıca kodek bilgisi.
-`playlist.m3u` süre ve başlık içeren `#EXTINF` satırlarıyla yazılır.
+`manifest.json` is meant for a phone app to read: the ordered chapter list, each
+chapter's audio and text filename, duration in seconds and byte size, plus codec,
+bitrate, sample rate and channel count. `playlist.m3u` is written with `#EXTINF`
+duration and title lines.
 
-Paket yalnızca kitabın **bütün** bölümlerinin sesi hazırsa üretilir; eksik veya
-bozuk bir WAV varsa hangi dosyanın eksik olduğu söylenir ve zip oluşturulmaz.
-Yarım kalan zip diske bırakılmaz.
+A package is only produced when **every** chapter has valid audio. If a WAV is
+missing or corrupt, the app names the offending file and writes no zip. A partial
+zip is never left on disk.
 
-## Doğrulama
+## Verification
 
 ```sh
 .venv/bin/python -m unittest discover -s tests -v
 node tests/ui.test.cjs
 ```
 
-Testler Google'a metin göndermez; bayt sınırı, metin bütünlüğü, sadece seçili
-kitabın gönderilmesi, yeniden başlatma, kullanım sınırı, hata bildirimi ve
-paketin tek klasörlü zip yapısını sahte servisle doğrular.
+The tests never send text to Google. Against a fake service they verify the byte
+limit, exact text preservation, that only the selected book is ever sent, resume
+behaviour, the usage ceiling, API-key redaction, failure reporting, and the
+single-folder structure of the zip package.
+
+---
+
+## Türkçe özet
+
+Bu uygulama `books/Kitap_Adi/*.txt` altındaki metin bölümlerini Google Cloud
+Text-to-Speech ile seslendirip sesli kitaba dönüştürür, sonra hepsini telefona
+taşınabilecek tek bir zip'te paketler. Tamamen kendi bilgisayarınızda çalışır ve
+kendi Google Cloud hesabınıza fatura edilir. Arayüz Türkçedir; bu belge ve
+[API-KEY-SETUP.md](API-KEY-SETUP.md) İngilizcedir.
+
+**Çalıştırma:** `uv venv .venv` → `uv pip install --python .venv/bin/python -r
+requirements.txt` → `.venv/bin/python app.py`. Tarayıcı
+http://127.0.0.1:5001 adresini açar; sunucu yalnızca bu bilgisayardan erişilebilir.
+
+**Anahtar:** Google Cloud'da proje açıp faturalandırma bağlayın, Text-to-Speech
+API'yi etkinleştirin, yalnızca bu API ile kısıtlanmış bir API anahtarı üretin ve
+`.venv/bin/python setup_google.py` ile kaydedin. Ayrıntılı anlatım ve hata
+çözümleri için **[API-KEY-SETUP.md](API-KEY-SETUP.md)** dosyasına bakın.
+
+**Maliyet koruması:** Aylık ücretsiz hak WaveNet için 4.000.000, Neural2 için
+1.000.000 karakterdir. Uygulama her modelin aylık ve gross sayacını ayrı tutar,
+karakterleri göndermeden **önce** `.state/usage.json` dosyasına yazar ve
+başarısız istekleri de sayar. Tamamlanmış sesler önbellekten yeniden kullanılır,
+ikinci kez ücretlendirilmez. Bu sayaç Google faturasını okumaz; kesin tutar için
+Google Cloud Faturalandırma'yı kontrol edin. Sayaç dosyasını silmeyin.
+
+**Bayt sınırı:** Her istek en fazla **4.999 UTF-8 bayt** olabilir. Metin Google'a
+olduğu gibi gönderilir; SSML eklenmez, kaçış yapılmaz. Tek bir dosya bile sınırı
+aşarsa kitabın hiçbir parçası gönderilmez. Otomatik bölme yapılmaz. Türkçe
+harfler iki bayt tuttuğu için karakter sayısı değil **bayt** sayısı önemlidir.
+
+**Ön dinleme:** Bir bölümü seçip önce dinleyebilirsiniz. Ön dinlemeler ses ve
+ayar bilgisiyle saklanır, birbirinin üzerine yazılmaz; farklı sesleri
+karşılaştırabilirsiniz. Hatalar kırmızı kutuda, hangi dosyada durulduğu ve
+Google'ın özgün yanıtıyla birlikte gösterilir; anahtar bu metinden çıkarılır.
+
+**Telefon paketi:** Kitabın sesi tamamlandıktan sonra **4. Telefon paketi**
+bölümü `packages/Kitap_Adi.zip` üretir. Zip'in içinde tek bir klasör vardır; her
+bölümün `.m4a` sesi ile `.txt` metni yan yana durur, ayrıca `manifest.json` ve
+`playlist.m3u` bulunur. WAV dosyaları AAC'ye dönüştürülür ve paket yaklaşık
+**8 kat küçülür** (ölçülen: 11 saatlik kitap 1,77 GB → 234 MB). Paketleme
+Google'a istek göndermez, ücretsizdir ve tekrarlanabilir.
+
+**Doğrulama:** `.venv/bin/python -m unittest discover -s tests -v` ve
+`node tests/ui.test.cjs`. Testler Google'a metin göndermez.

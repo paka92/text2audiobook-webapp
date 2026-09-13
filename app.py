@@ -417,7 +417,7 @@ def google_hint(exc):
     except ImportError:
         return ''
     causes = [
-        (auth.DefaultCredentialsError, 'Google kimlik doğrulaması eksik. API-KEY-KURULUMU.md dosyasındaki adımları tamamlayın.'),
+        (auth.DefaultCredentialsError, 'Google kimlik doğrulaması eksik. API-KEY-SETUP.md dosyasındaki adımları tamamlayın.'),
         (auth.RefreshError, 'Google oturumu yenilenemedi. gcloud auth application-default login komutunu tekrar çalıştırın.'),
         (api.Unauthenticated, 'Google kimlik bilgisini kabul etmedi. API anahtarını veya hesap girişini yenileyin.'),
         (api.PermissionDenied, 'Google bu projede izin vermedi. Cloud Text-to-Speech API etkin mi ve anahtarın kısıtlamaları doğru mu kontrol edin.'),
