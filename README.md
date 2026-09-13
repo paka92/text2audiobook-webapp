@@ -14,6 +14,10 @@ kitabı seslendir** düğmesine basın. Listeleme sırasında metin gönderilmez
 
 ## Google Cloud kurulumu
 
+> Kendi anahtarınızı oluşturma, kısıtlama, değiştirme ve hata çözümleri için
+> ayrıntılı rehber: **[API-KEY-KURULUMU.md](API-KEY-KURULUMU.md)**. Aşağısı
+> aynı adımların kısa özetidir.
+
 ### API anahtarıyla (CLI gerektirmez)
 
 1. [Google Cloud Console](https://console.cloud.google.com/) içinde proje seçin

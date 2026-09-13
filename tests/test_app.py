@@ -124,7 +124,7 @@ class AudiobookTests(unittest.TestCase):
         self.assertIn(reason, a.job['message'])
         client = a.app.test_client()
         self.assertEqual(client.get('/api/status').json['error'], reason)
-        self.assertIn('README', a.friendly_error(DefaultCredentialsError('kimlik yok')))
+        self.assertIn('API-KEY-KURULUMU.md', a.friendly_error(DefaultCredentialsError('kimlik yok')))
         with patch.object(a, 'available_voices', return_value=[voice]), patch.object(a.threading, 'Thread'):
             response = client.post('/api/start', json={'book': 'reason', 'voice': voice,
                                                        'language': 'tr-TR', 'family': 'Wavenet'},
