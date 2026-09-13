@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+.state/
+.audio-cache/
+books/
+packages/
+.DS_Store
+*credentials*.json
+.env
+
+# Generated audio and packages must never be committed.
+*.wav
+*.m4a
+*.zip
